@@ -29,7 +29,10 @@ THIS VERSION IS TO ENABLE OP WITHOUT ANYTHING ELSE
 
 #include <CAN.h>
 //Variables for button presses
-unsigned char pins[6] = {A0, 9};
+int steerLeverLeftPin = 2;
+int steerLeverRightPin = 3;
+int cruiseOnPin = A0;
+int cruiseSetResumePin = A1;
 int buttonstate0 = 0;
 int lastbuttonstate0 = 0;
 int buttonstate1 = 0;
@@ -73,8 +76,10 @@ void setup() {
   }
 
   //Setup Pins
-  pinMode(A0, INPUT_PULLUP);
-  pinMode(A1, INPUT_PULLUP);
+  pinMode(steerLeverLeftPin, INPUT);
+  pinMode(steerLeverRightPin, INPUT);
+  pinMode(cruiseOnPin, INPUT_PULLUP);
+  pinMode(cruiseSetResumePin, INPUT_PULLUP);
   pinMode(8, OUTPUT);
 
   CAN.onReceive(processCan);
@@ -83,9 +88,13 @@ void setup() {
 void loop() {
   delay(1);
 
+  //Get steer lever states
+  int left_turn_lever = digitalRead(steerLeverLeftPin) ? 0 : 1;
+  int right_turn_lever = digitalRead(steerLeverRightPin) ? 0 : 1;
+
   //Send data if button was pushed
-  int buttonValue1 = analogRead(A0); // Pressed: ~550
-  int buttonValue2 = analogRead(A1); // Set: ~550, Res: ~290
+  int buttonValue1 = analogRead(cruiseOnPin); // Pressed: ~550
+  int buttonValue2 = analogRead(cruiseSetResumePin); // Set: ~550, Res: ~290
   buttonstate0 = buttonValue1 > 250;
   buttonstate1 = buttonValue2 > 400; // set
   buttonstate2 = buttonValue2 < 400 && buttonValue2 > 200; // resume
@@ -103,9 +112,8 @@ void loop() {
     if (!cruiseActive) {
       if ((buttonstate1 == HIGH) && (buttonstate1 != lastbuttonstate1)) {
         Serial.println("SET_BUTTON");
-        //set the current speed as set speed, but only if it's over 5km/h
         cruiseActive = true;
-        set_speed = 20; // TODO: get speed from can bus
+        set_speed = current_speed;
       }
     } else {
       if (buttonstate1 == HIGH) {
@@ -163,7 +171,6 @@ void loop() {
   }
   CAN.endPacket();
 
-  
   //0xaa msg defaults 1a 6f WHEEL_SPEEDS
   uint8_t dat3[8];
   uint16_t wheelspeed = 0x1a6f + (current_speed * 100);
@@ -178,6 +185,15 @@ void loop() {
   CAN.beginPacket(0xaa);
   for (int ii = 0; ii < 8; ii++) {
     CAN.write(dat3[ii]);
+  }
+  CAN.endPacket();
+
+  //0x614 msg STEERING_LEVERS
+  uint8_t dat4[8] = {0x0};
+  dat4[3] = (left_turn_lever << 5) & 0x20 | (right_turn_lever << 4 & 0x10);
+  CAN.beginPacket(0x614);
+  for (int ii = 0; ii < 8; ii++) {
+    CAN.write(dat4[ii]);
   }
   CAN.endPacket();
 
