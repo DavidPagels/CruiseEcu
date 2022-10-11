@@ -1,26 +1,13 @@
 /*
 
-THIS VERSION IS TO ENABLE OP WITHOUT ANYTHING ELSE
+Custom code for David's 2008 Toyota Yaris with Rostra cruise control module
 ****** PINOUTS ******
 
     BUTTONS
-  MAIN_ON to pin 8
-  SET (-) to pin 9
-  RES (+) to pin 6
-  CANCEL to pin 7
-
-    CAN BOARD
-  INT to pin 2
-  SCK to pin 13
-  MOSI to pin 11
-  MISO to pin 12
-  CS to pin 10
-
-    VSS
-  VSS to pin 3 via pullup resistor
-
-    INTERRUPT
-  INTERRUPT OUT to pin A4
+  Cruise on/off:      A0
+  Set/resume:         A1
+  Steer lever left:   2
+  Steer lever right:  3
 
   CAN tranciever code credit
   Copyright (c) Sandeep Mistry. All rights reserved.
@@ -33,6 +20,7 @@ int steerLeverLeftPin = 2;
 int steerLeverRightPin = 3;
 int cruiseOnPin = A0;
 int cruiseSetResumePin = A1;
+
 int buttonstate0 = 0;
 int lastbuttonstate0 = 0;
 int buttonstate1 = 0;
@@ -46,9 +34,6 @@ int brake_pedal_pressed = 0;
 
 #define min_set_speed 0
 
-//check_can
-long check_can = 0;
-
 //debouncing
 long millis_held;
 unsigned long firstTime;
@@ -56,9 +41,6 @@ unsigned long firstTime;
 //flags for cruise state
 boolean mainOn = false;
 boolean cruiseActive = false;
-
-//are we using metric or standard?
-boolean metric = true;
 
 //CAN default messages
 uint8_t set_speed = 0x0;
@@ -80,7 +62,6 @@ void setup() {
   pinMode(steerLeverRightPin, INPUT);
   pinMode(cruiseOnPin, INPUT_PULLUP);
   pinMode(cruiseSetResumePin, INPUT_PULLUP);
-  pinMode(8, OUTPUT);
 
   CAN.onReceive(processCan);
 }
@@ -89,8 +70,8 @@ void loop() {
   delay(1);
 
   //Get steer lever states
-  int left_turn_lever = digitalRead(steerLeverLeftPin) ? 0 : 1;
-  int right_turn_lever = digitalRead(steerLeverRightPin) ? 0 : 1;
+  int left_turn_lever = digitalRead(steerLeverLeftPin);
+  int right_turn_lever = digitalRead(steerLeverRightPin);
 
   //Send data if button was pushed
   int buttonValue1 = analogRead(cruiseOnPin); // Pressed: ~550
@@ -143,10 +124,7 @@ void loop() {
   }
 
   if (brake_pedal_pressed) {
-    digitalWrite(8, HIGH);
     cruiseActive = false;
-  } else {
-    digitalWrite(8, LOW);
   }
 
   //0x1d2 msg PCM_CRUISE
@@ -245,7 +223,6 @@ void loop() {
 void processCan(int packetSize) {
   int canPacketId = CAN.packetId();
   if (canPacketId == 0x343) {
-    check_can = millis();
     uint8_t dat12[8];
     get_can_msg(dat12, 8);
     if ((dat12[3] & 0x01) == 1) {
