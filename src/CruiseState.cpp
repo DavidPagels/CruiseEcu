@@ -1,8 +1,11 @@
 #include "CruiseState.h"
 
-CruiseState::CruiseState(CruiseStalk &cruiseStalk): _cruiseStalk(cruiseStalk) {}
+CruiseState::CruiseState(CruiseStalk &cruiseStalk): _cruiseStalk(cruiseStalk) {
+    // p, i, d, hz, bits, signed
+    _pid = FastPID(0., 0., 0., 1, 16, false);
+}
 
-void CruiseState::activate(int setSpeed, float currentThrottle) {
+void CruiseState::activate(int setSpeed, double currentThrottle) {
     _setSpeed = setSpeed;
     _cruiseActive = true;
     _throttle = currentThrottle;
@@ -27,11 +30,12 @@ void CruiseState::writeToCan() {
   writeCanMessage(0x1d3, pcmCruise2);
 }
 
-float CruiseState::updateThrottle(float speed) {
+double CruiseState::updateThrottle(double speed) {
     // todo - use PID to update throttle value
     if (!(_cruiseStalk.getCruiseOn() && _cruiseActive)) {
         return 0.;
     }
+    _throttle = _pid.step(_setSpeed, speed);
     return _throttle;
 }
 
@@ -40,11 +44,15 @@ bool CruiseState::getCruiseActive() {
 }
 
 void CruiseState::incrementSetSpeed() {
-    _setSpeed += round(1.60934);
+    int newSpeed = _setSpeed + round(1.60934);
+    // Limit to ~80mph
+    _setSpeed = min(newSpeed, 130);
 }
 
 void CruiseState::decrementSetSpeed() {
-    _setSpeed -= round(1.60934);
+    int newSpeed = _setSpeed - round(1.60934);
+    // Limit to ~18mph
+    _setSpeed = max(newSpeed, 28);
 }
 
 void CruiseState::clearSetSpeed() {

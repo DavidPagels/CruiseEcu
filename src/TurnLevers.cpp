@@ -11,8 +11,8 @@ void TurnLevers::begin() {
 }
 
 void TurnLevers::update() {
-	_leftLeverActive = digitalRead(_leftLeverPin);
-	_rightLeverActive = digitalRead(_rightLeverPin);
+	_leftLeverActive = !digitalRead(_leftLeverPin);
+	_rightLeverActive = !digitalRead(_rightLeverPin);
 }
 
 void TurnLevers::writeToCan() {

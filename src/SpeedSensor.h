@@ -5,10 +5,12 @@
 
 class SpeedSensor: public CriticalSensor, CanDevice {
 public:
+    static const int SAFE_MS = 100;
+    SpeedSensor(): CriticalSensor(SAFE_MS) {};
     void update();
     void writeToCan();
-    float getCurrentSpeed();
+    double getCurrentSpeed();
 private:
-    float _currentSpeed = 0.;
+    double _currentSpeed = 0.;
 };
 #endif

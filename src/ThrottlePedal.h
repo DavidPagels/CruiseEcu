@@ -6,18 +6,18 @@
 
 class ThrottlePedal: public Sensor, CanDevice {
 public:
-    ThrottlePedal(int pedalPin, int throttlePin, float offset);
+    ThrottlePedal(int pedalPin, int throttlePin, double offset);
     void begin();
     void update();
     void writeToCan();
-    float getPedalPosition();
-    float getThrottlePosition();
-    void setThrottlePosition(float position);
+    double getPedalPosition();
+    double getThrottlePosition();
+    void setThrottlePosition(double position);
 private:
     int _pedalPin;
     int _throttlePin;
-    float _offset;
-    float _pedalPosition;
-    float _throttlePosition;
+    double _offset;
+    double _pedalPosition;
+    double _throttlePosition;
 };
 #endif

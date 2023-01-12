@@ -4,9 +4,11 @@
 
 class CriticalSensor: public Sensor {
 public:
+    CriticalSensor(int safeMs);
     void update();
     bool isSafe();
 private:
-    int _lastMessageMs = 0;
+    unsigned long _lastMessageMs = 0;
+    int _safeMs = 0;
 };
 #endif

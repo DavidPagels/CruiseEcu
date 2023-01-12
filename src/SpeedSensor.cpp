@@ -5,7 +5,10 @@ void SpeedSensor::update() {
 
     uint8_t speed_msg[8];
     getCanMessage(speed_msg, 8);
-    _currentSpeed = (speed_msg[0] * 256. + speed_msg[1]);
+    // Serial.println((speed_msg[0]), BIN);
+    // Serial.println(speed_msg[1], BIN);
+    // Serial.println("--------------");
+    _currentSpeed = ((speed_msg[0] * 256. + speed_msg[1]) / 100.);
 }
 
 void SpeedSensor::writeToCan() {
@@ -29,6 +32,6 @@ void SpeedSensor::writeToCan() {
   writeCanMessage(0xaa, dat);
 }
 
-float SpeedSensor::getCurrentSpeed() {
+double SpeedSensor::getCurrentSpeed() {
   return _currentSpeed;
 }

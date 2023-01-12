@@ -5,6 +5,8 @@
 
 class EngineRpm: public CriticalSensor, CanDevice {
 public:
+    static const int SAFE_MS = 100;
+    EngineRpm(): CriticalSensor(SAFE_MS) {};
     void update();
     bool getEngineRpm();
 private:

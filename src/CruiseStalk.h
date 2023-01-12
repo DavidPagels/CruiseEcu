@@ -10,15 +10,15 @@ public:
     void begin();
     void update();
     bool getCruiseOn();
-    int getSetPressedMs();
-    int getResPressedMs();
+    bool getSetPressed();
+    bool getResPressed();
 private:
     int _onOffPin;
     int _setResPin;
     int _ledPin;
-    DebouncedInput _onOff = DebouncedInput();
-    DebouncedInput _set = DebouncedInput();
-    DebouncedInput _res = DebouncedInput();
+    DebouncedInput _onOff = DebouncedInput(1000);
+    DebouncedInput _set = DebouncedInput(200);
+    DebouncedInput _res = DebouncedInput(200);
     bool _cruiseOn = false;
     bool _debounce(bool lastPressed, bool currentPressed, int startMs);
 };

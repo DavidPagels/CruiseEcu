@@ -1,6 +1,6 @@
 #include "ThrottlePedal.h"
 
-ThrottlePedal::ThrottlePedal(int pedalPin, int throttlePin, float offset) {
+ThrottlePedal::ThrottlePedal(int pedalPin, int throttlePin, double offset) {
 	_pedalPin = pedalPin;
 	_throttlePin = throttlePin;
 	_offset = offset;
@@ -23,15 +23,15 @@ void ThrottlePedal::writeToCan() {
 	writeCanMessage(0x2c2, pedalPosition);
 }
 
-float ThrottlePedal::getPedalPosition(){
+double ThrottlePedal::getPedalPosition(){
 	return _pedalPosition;
 }
 
-float ThrottlePedal::getThrottlePosition(){
+double ThrottlePedal::getThrottlePosition(){
 	return _throttlePosition - _offset;
 }
 
-void ThrottlePedal::setThrottlePosition(float position) {
+void ThrottlePedal::setThrottlePosition(double position) {
 	// 255
 	_throttlePosition = position + _offset;
 	analogWrite(_throttlePin, _throttlePosition / 5. * 255);

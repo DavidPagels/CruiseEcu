@@ -5,6 +5,8 @@
 
 class Brake: public CriticalSensor, CanDevice {
 public:
+    static const int SAFE_MS = 1100;
+    Brake(): CriticalSensor(SAFE_MS) {};
     void update();
     void writeToCan();
     bool getBrakePressed();

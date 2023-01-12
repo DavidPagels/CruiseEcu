@@ -16,13 +16,11 @@ void CruiseStalk::begin() {
 void CruiseStalk::update() {
     int onOffPressed = analogRead(_onOffPin);
     int setResPressed = analogRead(_setResPin);
-    Serial.print(setResPressed);
-    Serial.print(" ");
-    Serial.println(onOffPressed);
     _set.debounce(setResPressed > 800);
     _res.debounce(setResPressed < 800 && setResPressed > 500);
-    if (_onOff.debounce(onOffPressed)) {
-      //Serial.println("ONOFF Pressed");
+    _onOff.debounce(onOffPressed > 500);
+    if (_onOff.getPressed()) {
+        Serial.println("ONOFF Pressed");
         _cruiseOn = !_cruiseOn;
         digitalWrite(_ledPin, _cruiseOn);
     }
@@ -32,10 +30,10 @@ bool CruiseStalk::getCruiseOn() {
     return _cruiseOn;
 }
 
-int CruiseStalk::getSetPressedMs() {
-    return _set.getPressedMs();
+bool CruiseStalk::getSetPressed() {
+    return _set.getPressed();
 }
 
-int CruiseStalk::getResPressedMs() {
-    return _res.getPressedMs();
+bool CruiseStalk::getResPressed() {
+    return _res.getPressed();
 }

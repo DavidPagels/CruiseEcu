@@ -4,12 +4,15 @@
 
 class DebouncedInput {
 public:
-    int getPressedMs();
-    bool debounce(bool pressed);
+    DebouncedInput(int toggleDelayMs);
+    bool getPressed();
+    void debounce(bool pressed);
 private:
     bool _pressed = false;
+    unsigned long _firstPressedMs = 0;
     bool _debouncedPressed = false;
-    int _durationPressedMs = 0;
+    unsigned long _lastDebouncedPressed = 0;
+    int _toggleDelayMs = 500;
     static const int DEBOUNCE_DELAY = 50;
 };
 #endif

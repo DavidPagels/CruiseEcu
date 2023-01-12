@@ -4,15 +4,15 @@ Custom code for David's 2008 Toyota Yaris with custom arduino pedal interceptor 
 
 ****** PINOUTS ******
   BUTTONS
-    Set/resume:         A0
-    Cruise on/off:      A1
+    Cruise on/off:      A0
+    Set/resume:         A1
     Throttle In Low:    A2
     Throttle In High:   A3
     Cruise LED:         A4
-    Steer lever left:   3
-    Steer lever right:  4
     Throttle Out High:  5
     Throttle Out Low:   6
+    Steer lever left:   7
+    Steer lever right:  8
 
   CAN tranciever code credit
   Copyright (c) Sandeep Mistry. All rights reserved.
@@ -31,8 +31,8 @@ Custom code for David's 2008 Toyota Yaris with custom arduino pedal interceptor 
 
 ThrottlePedal lowPedal = ThrottlePedal(A2, 6, 0.75);
 ThrottlePedal highPedal = ThrottlePedal(A3, 5, 1.6);
-TurnLevers turnLevers = TurnLevers(3, 4);
-CruiseStalk cruiseStalk = CruiseStalk(A1, A0, A4);
+TurnLevers turnLevers = TurnLevers(7, 8);
+CruiseStalk cruiseStalk = CruiseStalk(A0, A1, A4);
 Brake brake = Brake();
 DefaultCanMessages defaultCanMessages = DefaultCanMessages();
 EngineRpm engineRpm = EngineRpm();
@@ -51,11 +51,11 @@ void setup() {
   Serial.begin(9600);
   while (!Serial);
   // start the can bus at 500 kbps
-  // if (!CAN.begin(500E3)) {
-  //   Serial.println("Starting can failed");
-  //   while (1);
-  // }
-  // CAN.onReceive(processCan);
+  if (!CAN.begin(500E3)) {
+    Serial.println("Starting can failed");
+    while (1);
+  }
+  CAN.onReceive(processCan);
 
   lowPedal.begin();
   highPedal.begin();
@@ -65,7 +65,7 @@ void setup() {
 }
 
 void loop() {
-  int loopStartMs = millis();
+  unsigned long loopStartMs = millis();
   lowPedal.update();
   highPedal.update();
   turnLevers.update();
@@ -76,44 +76,53 @@ void loop() {
   if (safeToCruise) {
     updateCruiseState();
   } else {
-    // Serial.println("Cancelling due to unresponsive CAN");
+    Serial.println("Cancelling due to unresponsive CAN");
+    cruiseState.clearSetSpeed();
     cruiseState.deactivate();
+    lowPedal.setThrottlePosition(0.);
+    highPedal.setThrottlePosition(0.);
   }
 
-  turnLevers.writeToCan();
-  brake.writeToCan();
-  speedSensor.writeToCan();
-  cruiseState.writeToCan();
-  lowPedal.writeToCan();
-  defaultCanMessages.writeToCan();
+  // turnLevers.writeToCan();
+  // brake.writeToCan();
+  // speedSensor.writeToCan();
+  // cruiseState.writeToCan();
+  // lowPedal.writeToCan();
+  // defaultCanMessages.writeToCan();
   //Serial.print("Loop duration: ");
   //Serial.println(millis() - loopStartMs);
 }
 
 void updateCruiseState() {
+  // Notes: 
+  // figure out speed < 18 mph (it's in kph)
+  // set throttle upper limit in pid loop to 0.6 to start
+  Serial.println(speedSensor.getCurrentSpeed());
   if (cruiseStalk.getCruiseOn()) {
-    int setPressedMs = cruiseStalk.getSetPressedMs();
-    int resPressedMs = cruiseStalk.getResPressedMs();
-    if (!cruiseState.getCruiseActive() && setPressedMs) {
+    bool setPressed = cruiseStalk.getSetPressed();
+    bool resPressed = cruiseStalk.getResPressed();
+    if (!cruiseState.getCruiseActive() && setPressed) {
       Serial.println("Cruise Activated");
-      cruiseState.activate(speedSensor.getCurrentSpeed(), lowPedal.getPedalPosition());
+      cruiseState.activate(max(18.0, speedSensor.getCurrentSpeed()), lowPedal.getPedalPosition());
     } else if (cruiseState.getCruiseActive()) {
-      if (setPressedMs) {
+      if (setPressed) {
         Serial.println("Decrementing Speed");
         cruiseState.decrementSetSpeed();
-      } else if (resPressedMs) {
+      } else if (resPressed) {
         Serial.println("Incrementing Speed");
         cruiseState.incrementSetSpeed();
       }
     }
     if (cruiseState.getCruiseActive()) {
-      float newThrottle = cruiseState.updateThrottle(speedSensor.getCurrentSpeed());
-      lowPedal.setThrottlePosition(newThrottle);
-      highPedal.setThrottlePosition(newThrottle);
+      double newThrottle = cruiseState.updateThrottle(speedSensor.getCurrentSpeed());
+      //lowPedal.setThrottlePosition(newThrottle);
+      //highPedal.setThrottlePosition(newThrottle);
     }
   } else {
     cruiseState.clearSetSpeed();
     cruiseState.deactivate();
+    lowPedal.setThrottlePosition(0.);
+    highPedal.setThrottlePosition(0.);
   }
 }
 
@@ -142,6 +151,8 @@ void processCan(int packetSize) {
       if (brake.getBrakePressed()) {
         Serial.println("Cancelling due to brake press");
         cruiseState.deactivate();
+        lowPedal.setThrottlePosition(0.);
+        highPedal.setThrottlePosition(0.);
       }
       break;
   }
