@@ -20,13 +20,14 @@ void CruiseStalk::update() {
     _res.debounce(setResPressed < 800 && setResPressed > 500);
     _onOff.debounce(onOffPressed > 500);
     if (_onOff.getPressed()) {
-        Serial.println("ONOFF Pressed");
+        // Serial.println("ONOFF Pressed");
         _cruiseOn = !_cruiseOn;
         digitalWrite(_ledPin, _cruiseOn);
     }
 }
 
 bool CruiseStalk::getCruiseOn() {
+
     return _cruiseOn;
 }
 

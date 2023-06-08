@@ -37,6 +37,7 @@ Brake brake = Brake();
 DefaultCanMessages defaultCanMessages = DefaultCanMessages();
 EngineRpm engineRpm = EngineRpm();
 SpeedSensor speedSensor = SpeedSensor();
+unsigned long lastUpdate = 0;
 
 /* 
   Deactivated when: 
@@ -48,7 +49,7 @@ SpeedSensor speedSensor = SpeedSensor();
 CruiseState cruiseState = CruiseState(cruiseStalk);
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial);
   // start the can bus at 500 kbps
   if (!CAN.begin(500E3)) {
@@ -61,7 +62,7 @@ void setup() {
   highPedal.begin();
   turnLevers.begin();
   cruiseStalk.begin();
-  Serial.println("Successfully set up");
+  // Serial.println("Successfully set up");
 }
 
 void loop() {
@@ -71,54 +72,53 @@ void loop() {
   turnLevers.update();
   cruiseStalk.update();
 
-  bool safeToCruise = brake.isSafe() && engineRpm.isSafe() && speedSensor.isSafe();
-
+  bool safeToCruise = engineRpm.isSafe() && speedSensor.isSafe();
   if (safeToCruise) {
-    updateCruiseState();
+    //if ((millis() - lastUpdate) >= 10) {
+      lastUpdate = millis();
+      updateCruiseState();
+    //}
   } else {
-    Serial.println("Cancelling due to unresponsive CAN");
+    Serial.println("NOT SAFE");
     cruiseState.clearSetSpeed();
     cruiseState.deactivate();
     lowPedal.setThrottlePosition(0.);
     highPedal.setThrottlePosition(0.);
   }
 
-  // turnLevers.writeToCan();
-  // brake.writeToCan();
-  // speedSensor.writeToCan();
-  // cruiseState.writeToCan();
-  // lowPedal.writeToCan();
-  // defaultCanMessages.writeToCan();
+  turnLevers.writeToCan();
+  brake.writeToCan();
+  speedSensor.writeToCan();
+  cruiseState.writeToCan();
+  lowPedal.writeToCan();
+  defaultCanMessages.writeToCan();
   //Serial.print("Loop duration: ");
   //Serial.println(millis() - loopStartMs);
 }
 
 void updateCruiseState() {
-  // Notes: 
-  // figure out speed < 18 mph (it's in kph)
-  // set throttle upper limit in pid loop to 0.6 to start
-  Serial.println(speedSensor.getCurrentSpeed());
   if (cruiseStalk.getCruiseOn()) {
     bool setPressed = cruiseStalk.getSetPressed();
     bool resPressed = cruiseStalk.getResPressed();
     if (!cruiseState.getCruiseActive() && setPressed) {
-      Serial.println("Cruise Activated");
-      cruiseState.activate(max(18.0, speedSensor.getCurrentSpeed()), lowPedal.getPedalPosition());
+      // Serial.println("Cruise Activated");
+      cruiseState.activate(max(29.0, speedSensor.getCurrentSpeed()), lowPedal.getPedalPosition());
     } else if (cruiseState.getCruiseActive()) {
       if (setPressed) {
-        Serial.println("Decrementing Speed");
+        //Serial.println("Decrementing Speed");
         cruiseState.decrementSetSpeed();
       } else if (resPressed) {
-        Serial.println("Incrementing Speed");
+        //Serial.println("Incrementing Speed");
         cruiseState.incrementSetSpeed();
       }
     }
     if (cruiseState.getCruiseActive()) {
       double newThrottle = cruiseState.updateThrottle(speedSensor.getCurrentSpeed());
-      //lowPedal.setThrottlePosition(newThrottle);
-      //highPedal.setThrottlePosition(newThrottle);
+      lowPedal.setThrottlePosition(newThrottle);
+      highPedal.setThrottlePosition(newThrottle);
     }
   } else {
+    //Serial.println("Cruise not on");
     cruiseState.clearSetSpeed();
     cruiseState.deactivate();
     lowPedal.setThrottlePosition(0.);
@@ -149,11 +149,13 @@ void processCan(int packetSize) {
     case 0x3b4:
       brake.update();
       if (brake.getBrakePressed()) {
-        Serial.println("Cancelling due to brake press");
         cruiseState.deactivate();
         lowPedal.setThrottlePosition(0.);
         highPedal.setThrottlePosition(0.);
       }
+      break;
+    case 0x610:
+      speedSensor.updateLowRes();
       break;
   }
 }

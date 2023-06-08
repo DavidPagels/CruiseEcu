@@ -5,10 +5,14 @@ void SpeedSensor::update() {
 
     uint8_t speed_msg[8];
     getCanMessage(speed_msg, 8);
-    // Serial.println((speed_msg[0]), BIN);
-    // Serial.println(speed_msg[1], BIN);
-    // Serial.println("--------------");
     _currentSpeed = ((speed_msg[0] * 256. + speed_msg[1]) / 100.);
+}
+
+void SpeedSensor::updateLowRes() {
+    uint8_t speed_msg[8];
+    getCanMessage(speed_msg, 8);
+    _currentLowResMs = millis();
+    _currentLowResSpeed = speed_msg[2];
 }
 
 void SpeedSensor::writeToCan() {
@@ -33,5 +37,25 @@ void SpeedSensor::writeToCan() {
 }
 
 double SpeedSensor::getCurrentSpeed() {
-  return _currentSpeed;
+  double mid = _currentSpeed * 2 / 3;
+  double low = _currentSpeed / 3;
+  
+  // Find the current state of the speed sensor
+  double cleanSpeed;
+  if (abs(_currentLowResSpeed - low) < abs(_currentLowResSpeed - mid)) {
+    cleanSpeed = low;
+  } else if (abs(_currentLowResSpeed - mid) < abs(_currentLowResSpeed - _currentSpeed)) {
+    cleanSpeed = mid;
+  } else {
+    cleanSpeed = _currentSpeed;
+  }
+
+  // If the sensor is transitioning ranges, just use the low res speed
+  double retSpeed = abs(_currentLowResSpeed - cleanSpeed) > (2 + 2 * (millis() - _currentLowResMs) / 500) && _currentLowResSpeed > 7 ? _currentLowResSpeed : cleanSpeed;
+  // Serial.print(millis());
+  // Serial.print(",");
+  // Serial.print(retSpeed);
+  // Serial.print(",");
+  // Serial.println(_currentLowResSpeed);
+  return retSpeed;
 }

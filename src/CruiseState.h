@@ -20,6 +20,6 @@ private:
     int _setSpeed = 0;
     double _throttle = 0.;
     bool _cruiseActive = false;
-    CruiseStalk _cruiseStalk;
+    CruiseStalk &_cruiseStalk;
 };
 #endif

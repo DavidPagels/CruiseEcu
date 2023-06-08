@@ -2,7 +2,8 @@
 
 CruiseState::CruiseState(CruiseStalk &cruiseStalk): _cruiseStalk(cruiseStalk) {
     // p, i, d, hz, bits, signed
-    _pid = FastPID(0., 0., 0., 1, 16, false);
+    _pid = FastPID(30., 10., 150., 100, 16, false);
+    _pid.setOutputRange(0, 600);
 }
 
 void CruiseState::activate(int setSpeed, double currentThrottle) {
@@ -31,11 +32,21 @@ void CruiseState::writeToCan() {
 }
 
 double CruiseState::updateThrottle(double speed) {
-    // todo - use PID to update throttle value
     if (!(_cruiseStalk.getCruiseOn() && _cruiseActive)) {
         return 0.;
     }
-    _throttle = _pid.step(_setSpeed, speed);
+
+    int16_t pidThrottle = _pid.step(_setSpeed, speed);
+
+    // Limit to 0.6. Since max is 600, divide by 1000
+    _throttle = pidThrottle / 1000.;
+    Serial.print(millis());
+    Serial.print(" ");
+    Serial.print(_setSpeed);
+    Serial.print(" ");
+    Serial.print(speed);
+    Serial.print(" ");
+    Serial.println(_throttle);
     return _throttle;
 }
 
