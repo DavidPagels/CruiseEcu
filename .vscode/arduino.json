@@ -1,6 +1,6 @@
 {
-    "port": "COM3",
     "board": "arduino:avr:uno",
-    "programmer": "avrispmkii",
-    "sketch": "CruiseEcu.ino"
+    "sketch": "CruiseEcu.ino",
+    "output": "./build",
+    "port": "/dev/ttyACM0"
 }
