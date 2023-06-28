@@ -2,14 +2,21 @@
 
 CruiseState::CruiseState(CruiseStalk &cruiseStalk): _cruiseStalk(cruiseStalk) {
     // p, i, d, hz, bits, signed
-    _pid = FastPID(30., 10., 150., 100, 16, false);
-    _pid.setOutputRange(0, 600);
+    _pid = new FastPID(255., 0., 0., 100, 16, false);
+    _pid->setOutputRange(0., 600.);
 }
 
 void CruiseState::activate(int setSpeed, double currentThrottle) {
-    _setSpeed = setSpeed;
+    _setSpeed = (float) setSpeed;
     _cruiseActive = true;
     _throttle = currentThrottle;
+}
+
+void CruiseState::resume(double currentThrottle) {
+    if (_setSpeed > 0) {
+        _cruiseActive = true;
+        _throttle = currentThrottle;
+    }
 }
 
 void CruiseState::deactivate() {
@@ -35,18 +42,23 @@ double CruiseState::updateThrottle(double speed) {
     if (!(_cruiseStalk.getCruiseOn() && _cruiseActive)) {
         return 0.;
     }
-
-    int16_t pidThrottle = _pid.step(_setSpeed, speed);
+    int16_t pidThrottle = 0;
+    //if (speed < _setSpeed * 0.85) {
+     //   pidThrottle = 600;
+       // _pid.clear();
+    //} else {
+        pidThrottle = _pid->step(_setSpeed, speed);
+    //}
 
     // Limit to 0.6. Since max is 600, divide by 1000
     _throttle = pidThrottle / 1000.;
-    Serial.print(millis());
-    Serial.print(" ");
-    Serial.print(_setSpeed);
-    Serial.print(" ");
-    Serial.print(speed);
-    Serial.print(" ");
-    Serial.println(_throttle);
+    // Serial.print(millis());
+    // Serial.print(" ");
+    // Serial.print(_setSpeed);
+    // Serial.print(" ");
+    // Serial.print(speed);
+    // Serial.print(" ");
+    // Serial.println(_throttle);
     return _throttle;
 }
 

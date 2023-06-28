@@ -100,15 +100,17 @@ void updateCruiseState() {
   if (cruiseStalk.getCruiseOn()) {
     bool setPressed = cruiseStalk.getSetPressed();
     bool resPressed = cruiseStalk.getResPressed();
-    if (!cruiseState.getCruiseActive() && setPressed) {
+    if (!cruiseState.getCruiseActive()) {
       // Serial.println("Cruise Activated");
-      cruiseState.activate(max(29.0, speedSensor.getCurrentSpeed()), lowPedal.getPedalPosition());
+      if (setPressed) {
+        cruiseState.activate(max(29.0, speedSensor.getCurrentSpeed()), lowPedal.getPedalPosition());
+      } else if (resPressed) {
+        cruiseState.resume(lowPedal.getPedalPosition());
+      }
     } else if (cruiseState.getCruiseActive()) {
       if (setPressed) {
-        //Serial.println("Decrementing Speed");
         cruiseState.decrementSetSpeed();
       } else if (resPressed) {
-        //Serial.println("Incrementing Speed");
         cruiseState.incrementSetSpeed();
       }
     }
